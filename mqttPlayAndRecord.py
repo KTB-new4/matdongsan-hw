@@ -1,3 +1,9 @@
+# 라즈베리파이에 설치할 의존성
+# pip install paho-mqtt requests sounddevice pydub
+# sudo apt update
+# sudo apt install ffmpeg -y
+
+
 import paho.mqtt.client as mqtt
 import requests
 import sounddevice as sd
