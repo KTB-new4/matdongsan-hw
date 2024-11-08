@@ -11,7 +11,7 @@ After=network.target bluetooth.target
 # 블루투스 오디오 장치가 연결되었는지 확인하는 조건을 설정합니다.
 Wants=bluetooth.target
 ConditionPathExists=/sys/class/bluetooth  # 블루투스가 있는지 확인하는 조건
-ConditionPathExistsGlob=/sys/class/sound/hwC*D*  # 오디오 장치가 있는지 확인하는 조건
+# ConditionPathExistsGlob=/sys/class/sound/hwC*D*  # 오디오 장치가 있는지 확인하는 조건
 
 [Service]
 # 이 서비스를 실행할 사용자를 지정합니다. "pi"는 라즈베리 파이의 기본 사용자 이름입니다.
