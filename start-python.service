@@ -1,0 +1,29 @@
+# /etc/systemd/system/start-python.service
+
+[Unit]
+# 서비스에 대한 설명입니다.
+Description=Run Script When Bluetooth Audio is Connected
+
+# 이 서비스는 network와 bluetooth가 활성화된 후에 실행되도록 합니다.
+After=network.target bluetooth.target
+
+# 이 서비스는 블루투스 장치가 연결되었을 때만 실행됩니다.
+# 블루투스 오디오 장치가 연결되었는지 확인하는 조건을 설정합니다.
+Wants=bluetooth.target
+ConditionPathExists=/sys/class/bluetooth  # 블루투스가 있는지 확인하는 조건
+ConditionPathExistsGlob=/sys/class/sound/hwC*D*  # 오디오 장치가 있는지 확인하는 조건
+
+[Service]
+# 이 서비스를 실행할 사용자를 지정합니다. "pi"는 라즈베리 파이의 기본 사용자 이름입니다.
+User=mds
+
+# ExecStart: 스크립트를 실행하는 명령어입니다.
+# 이미 가상환경을 활성화하고 Python 파일을 실행하는 스크립트입니다.
+ExecStart=/home/mds/Desktop/matdongsan-hw/start.sh
+
+# Restart 옵션은 서비스가 실패할 경우 자동으로 재시작하도록 설정합니다.
+Restart=on-failure
+
+[Install]
+# multi-user.target과 bluetooth.target 상태에서 자동으로 이 서비스를 시작하도록 설정합니다.
+WantedBy=bluetooth.target multi-user.target
