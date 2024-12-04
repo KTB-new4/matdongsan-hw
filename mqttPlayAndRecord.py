@@ -7,6 +7,8 @@
 # 오디오를 녹음할 때 특정 데시벨을 넘기는 경우에만 녹음을 하고 특정 데시벨 이하로 얼마간 지속되면 그때 녹음을 종료하고 스프링으로 전달해야함.
 # 또한 오디오를 재생할 때 오디오를 조작할 수 있어야함. (아마도 휴대폰 앱을 사용해 조작할듯. 그럼 그 조작을 다시 MQTT로 전달받아 그걸 사용?) -> 싱크나 이런게 안맞을 가능성
 
+# 메시지큐를 사용하기 때문에 여러번 입력이 들어오면 큐에 들어가 대기 상태로 들어감. 따라서 중복 요청을 처리할 코드 작성이 필요할듯.
+
 import paho.mqtt.client as mqtt
 import requests
 import sounddevice as sd
@@ -14,6 +16,8 @@ import soundfile as sf
 import pygame
 import tempfile
 import os
+import threading
+import time
 
 # MQTT 브로커 주소와 구독할 토픽 설정
 BROKER_ADDRESS = "test.mosquitto.org"
@@ -22,13 +26,25 @@ SPRING_BACKEND_URL = "http://localhost:8080/upload"  # 스프링 백엔드 파�
 
 # MQTT 메시지를 수신할 때 실행되는 콜백 함수
 def on_message(client, userdata, message):
+    print(f"Received message: Topic: {message.topic}, Payload: {message.payload.decode('utf-8')}")
     command = message.payload.decode("utf-8")
-    print(f"Received command: {command}")
     
     # 명령 형식이 "play-and-record <url>"인지 확인
     if command.startswith("play-and-record"):
         url = command.split(" ")[1]
         play_and_record(url)
+
+# MQTT 연결이 끊어졌을 때 실행되는 콜백 함수
+def on_disconnect(client, userdata, rc):
+    print(f"Disconnected with return code {rc}. Reconnecting...")
+    while True:
+        try:
+            client.reconnect()
+            print("Reconnected to broker.")
+            break
+        except Exception as e:
+            print(f"Reconnection failed: {e}")
+            time.sleep(5)  # 5초 후 재시도
 
 # 오디오를 재생하고 녹음하는 함수
 def play_and_record(url):
@@ -105,17 +121,19 @@ def upload_file_to_spring(file_path):
 print("정상실행확인...")
 
 # MQTT 클라이언트 설정
-client = mqtt.Client("RaspberryPi")
+client = mqtt.Client("RaspberryPi_UniqueID")
 client.on_message = on_message
+client.on_disconnect = on_disconnect
 
-# MQTT 브로커에 연결
+# 브로커 연결
 print("Connecting to MQTT broker...")
-client.connect(BROKER_ADDRESS)
+client.connect(BROKER_ADDRESS, keepalive=60)
 
 # 특정 토픽 구독
 print(f"Subscribing to topic: {TOPIC}")
-client.subscribe(TOPIC)
+client.subscribe(TOPIC, qos=1)
 
-# 메시지 수신 대기
-print("Waiting for messages...")
-client.loop_forever()
+# MQTT 루프를 별도 스레드에서 실행
+print("Starting MQTT loop in a new thread...")
+mqtt_thread = threading.Thread(target=client.loop_forever)
+mqtt_thread.start()
