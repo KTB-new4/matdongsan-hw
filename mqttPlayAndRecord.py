@@ -20,7 +20,7 @@ import threading
 import time
 
 # MQTT 브로커 주소와 구독할 토픽 설정
-BROKER_ADDRESS = "test.mosquitto.org"
+BROKER_ADDRESS = "52.78.46.251"
 TOPIC = "devices/raspberry_pi/command"
 SPRING_BACKEND_URL = "http://localhost:8080/upload"  # 스프링 백엔드 파일 업로드 엔드포인트
 
@@ -33,6 +33,9 @@ def on_message(client, userdata, message):
     if command.startswith("play-and-record"):
         url = command.split(" ")[1]
         play_and_record(url)
+    elif command.startswith("only-play"):
+        url = command.split(" ")[1]
+        play(url)
 
 # MQTT 연결이 끊어졌을 때 실행되는 콜백 함수
 def on_disconnect(client, userdata, rc):
@@ -45,6 +48,36 @@ def on_disconnect(client, userdata, rc):
         except Exception as e:
             print(f"Reconnection failed: {e}")
             time.sleep(5)  # 5초 후 재시도
+
+# 오디오를 재생하는 함수
+def play(url):
+    # 1. URL에서 오디오 파일 다운로드
+    response = requests.get(url)
+
+    # 2. 오디오 파일을 임시 mp3 파일로 저장
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
+        temp_file.write(response.content)
+        temp_file.flush()
+
+        # 3. mp3 파일을 wav 파일로 변환 (pygame이 wav 형식을 더 안정적으로 재생할 수 있음)
+        wav_file = temp_file.name.replace(".mp3", ".wav")
+        os.system(f"ffmpeg -i {temp_file.name} {wav_file}")
+
+        # 4. 변환된 wav 파일을 재생
+        try:
+            pygame.mixer.init()
+            pygame.mixer.music.load(wav_file)
+            print("Playing audio...")
+            pygame.mixer.music.play()
+            while pygame.mixer.music.get_busy():  # 재생이 끝날 때까지 대기
+                continue
+            print("Audio playback finished.")
+        except Exception as e:
+            print(f"Audio playback failed: {e}")
+        finally:
+            # 임시 파일 삭제
+            os.remove(temp_file.name)
+            os.remove(wav_file)
 
 # 오디오를 재생하고 녹음하는 함수
 def play_and_record(url):
