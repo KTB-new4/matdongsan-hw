@@ -89,6 +89,9 @@ def play_and_record(url):
         temp_file.write(response.content)
         temp_file.flush()
 
+        # 원래 파일 이름 생성
+        original_filename = os.path.basename(url).split(".")[0]
+
         # 3. mp3 파일을 wav 파일로 변환 (pygame이 wav 형식을 더 안정적으로 재생할 수 있음)
         wav_file = temp_file.name.replace(".mp3", ".wav")
         os.system(f"ffmpeg -i {temp_file.name} {wav_file}")
@@ -110,8 +113,10 @@ def play_and_record(url):
             os.remove(wav_file)
 
     # 녹음 파일을 저장할 경로 설정
-    wav_filename = "./recorded_audio.wav"
-    mp3_filename = "./recorded_audio.mp3"
+    wav_filename = f"./{original_filename}-recorded.wav"
+    mp3_filename = f"./{original_filename}-recorded.mp3"
+    print(wav_filename)
+    print(mp3_filename)
 
     # 오디오 녹음 및 MP3로 변환
     record_audio(wav_filename, duration=10)
