@@ -18,11 +18,12 @@ import tempfile
 import os
 import threading
 import time
+import uuid
 
 # MQTT 브로커 주소와 구독할 토픽 설정
 BROKER_ADDRESS = "52.78.46.251"
 TOPIC = "devices/raspberry_pi/command"
-SPRING_BACKEND_URL = "http://localhost:8080/upload"  # 스프링 백엔드 파일 업로드 엔드포인트
+SPRING_BACKEND_URL = "http://3.35.49.154/api/modules/upload"  # 스프링 백엔드 파일 업로드 엔드포인트
 
 # MQTT 메시지를 수신할 때 실행되는 콜백 함수
 def on_message(client, userdata, message):
@@ -159,7 +160,7 @@ def upload_file_to_spring(file_path):
 print("정상실행확인...")
 
 # MQTT 클라이언트 설정
-client = mqtt.Client("RaspberryPi_UniqueID")
+client = mqtt.Client(f"RaspberryPi_{uuid.uuid4()}")
 client.on_message = on_message
 client.on_disconnect = on_disconnect
 
